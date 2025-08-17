@@ -22,7 +22,7 @@ const AuthScreen = ({ navigation }: { navigation: any }) => {
         try {
           await AsyncStorage.setItem('@user_token', token);
           console.log('Token stored successfully');
-          navigation.replace('Onboarding');
+          navigation.replace('MainTabs');
         } catch (storageError: any) {
           console.error('Storage Error:', storageError);
           Alert.alert('Error', 'Failed to save authentication token');
