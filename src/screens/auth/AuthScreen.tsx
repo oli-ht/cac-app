@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Alert, TextInput, TouchableOpacity } from 'react-native';
-import { auth } from '../config/firebaseConfig';
+import { auth } from '../../config/firebaseConfig';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -99,6 +99,7 @@ const styles = StyleSheet.create({
   },
   input: {
     marginTop: 15,
+    borderRadius: 20,
     padding: 10,
     width: '80%',
     height: 40,
@@ -106,6 +107,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   button: {
+    borderRadius: 20,
     width: '80%',
     height: 40,
     backgroundColor: 'blue',
