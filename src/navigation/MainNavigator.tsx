@@ -5,8 +5,8 @@ import { MainTabParamList } from '../types/navigation';
 import { Text, Image } from 'react-native';
 
 // Import screens
-import AuthScreen from '../screens/AuthScreen';
-import OnboardingScreen from '../screens/OnboardingScreen';
+import AuthScreen from '../screens/auth/AuthScreen';
+import OnboardingScreen from '../screens/auth/OnboardingScreen';
 import HomeScreen from '../screens/HomeScreen';
 import CoursesScreen from '../screens/CoursesScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
