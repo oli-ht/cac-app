@@ -1,6 +1,7 @@
 import 'dotenv/config';
 
 export default {
+  name: "main",
   expo: {
     name: "congressapp-expo",
     slug: "congressapp-expo",

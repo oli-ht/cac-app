@@ -15,6 +15,8 @@ import SettingsScreen from '../screens/SettingsScreen';
 import ChatbotsScreen from '../screens/ChatbotsScreen';
 import ChatScreen from '../screens/ChatScreen';
 import CourseDetailScreen from '../screens/CourseDetailScreen';
+import CourseContentScreen from '../screens/CourseContentScreen';
+import CourseCreatorScreen from '../screens/CourseCreatorScreen';
 import CourseSlidesScreen from '../screens/CourseSlidesScreen';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -35,7 +37,18 @@ function CoursesStackNavigator() {
     <CoursesStack.Navigator id={undefined} screenOptions={{ headerShown: false }}>
       <CoursesStack.Screen name="CoursesMain" component={CoursesScreen} />
       <CoursesStack.Screen name="CourseDetail" component={CourseDetailScreen} />
-      <CoursesStack.Screen name="CourseSlides" component={CourseSlidesScreen} />
+      <CoursesStack.Screen 
+        name="CourseCreator" 
+        component={CourseCreatorScreen} 
+        options={{ 
+          title: 'Create Course',
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
+          gestureEnabled: true,
+          gestureDirection: 'vertical'
+        }} 
+      />
+      <CoursesStack.Screen name="CourseContent" component={CourseContentScreen} />
     </CoursesStack.Navigator>
   );
 }
@@ -139,9 +152,9 @@ const TabNavigator = () => {
 
 const MainNavigator = () => {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Onboarding">
-      <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+    <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Auth">
       <Stack.Screen name="Auth" component={AuthScreen} />
+      <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="MainTabs" component={TabNavigator} />
     </Stack.Navigator>
   );

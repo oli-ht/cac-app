@@ -1,10 +1,12 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LearningGoalCard from '../components/HomeScreen/LearningGoalCard';
 import HorizontalSlider from '../components/common/HorizontalSlider';
 import QuickActionCard from '../components/common/QuickActionCard';
 import { SimpleBarChart } from '../components/HomeScreen/SimpleBarChart';
+import { db, auth } from "../config/firebaseConfig";
+import { doc, getDoc } from "firebase/firestore";
 
 // Quick actions data
 const quickActionsData = [
@@ -35,6 +37,29 @@ const quickActionsData = [
 ];
 
 const HomeScreen = () => {
+  const [userData, setUserData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          setUserData(userDoc.data());
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
   const handleQuickActionPress = (actionId: string) => {
     console.log('Quick action pressed:', actionId);
     // Add your navigation or action logic here
@@ -50,8 +75,14 @@ const HomeScreen = () => {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Hi ----!</Text>
-        <Text style={styles.headerSubtitle}>xhxxhewwfiwejfo</Text>
+        {loading ? (
+          <ActivityIndicator color="#fff" size="large" />
+        ) : (
+          <>
+            <Text style={styles.headerTitle}>Hi {userData?.name || 'there'}!</Text>
+            <Text style={styles.headerSubtitle}>What will you learn today?</Text>
+          </>
+        )}
       </View>
       <View style={styles.content}>
         <LearningGoalCard currentMinutes={46} totalMinutes={60} />

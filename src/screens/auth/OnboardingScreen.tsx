@@ -1,8 +1,19 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Dimensions, TextInput, Image, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, FlatList, Dimensions, TextInput, Image, Pressable, Alert } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import CustomDropdown from '../../components/common/CustomDropdown';
+import { db, auth } from "../../config/firebaseConfig";
+import { doc, setDoc } from "firebase/firestore"
 
+const Loading = () => {
+  return (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color="#007AFF" />
+    </View>
+  );
+};
 interface Slide {
   id: string;
   title: string;
@@ -60,9 +71,73 @@ const slides: Slide[] = [
 ];
 
 const OnboardingScreen = ({ navigation }: { navigation: any }) => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
+
+  React.useEffect(() => {
+    const checkOnboardingStatus = async () => {
+      try {
+        // Check if user has completed onboarding
+        const onboardingStatus = await AsyncStorage.getItem('@onboarding_complete');
+        const userToken = await AsyncStorage.getItem('@user_token');
+        
+        if (onboardingStatus === 'true' && userToken) {
+          // User has completed onboarding and is logged in
+          navigation.replace('MainTabs');
+        } else if (userToken && !onboardingStatus) {
+          // User is logged in but hasn't completed onboarding
+          setHasCompletedOnboarding(false);
+          setIsLoading(false);
+        } else {
+          // User needs to log in
+          navigation.replace('Auth');
+        }
+      } catch (error) {
+        console.error('Error checking onboarding status:', error);
+        navigation.replace('Auth');
+      }
+    };
+
+    checkOnboardingStatus();
+  }, [navigation]);
+
+  if (isLoading) {
+    return <Loading />;
+  }
+
+  return (
+    <View style={styles.container}>
+      <OnboardingContent navigation={navigation} />
+      <StatusBar style="auto" />
+    </View>
+  );
+};
+
+const OnboardingContent = ({ navigation }: { navigation: any }) => {
   const windowWidth = Dimensions.get('window').width;
   const flatListRef = React.useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [name, setName] = useState('');
+  const [zipCode, setZipCode] = useState('');
+  const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
+  const [ageOpen, setAgeOpen] = useState(false);
+  const [age, setAge] = useState(null);
+  const [ageItems, setAgeItems] = useState([
+    { label: '6-12', value: '6-12' },
+    { label: '13-18', value: '13-18' },
+    { label: '19-29', value: '19-29' },
+    { label: '30-49', value: '30-49' },
+    { label: '50+', value: '50+' },
+  ]);
+  const [genderOpen, setGenderOpen] = useState(false);
+  const [gender, setGender] = useState(null);
+  const [genderItems, setGenderItems] = useState([
+    { label: 'Male', value: 'Male' },
+    { label: 'Female', value: 'Female' },
+    { label: 'Non-binary', value: 'Non-binary' },
+    { label: 'Other', value: 'Other' },
+    { label: 'Prefer not to say', value: 'Prefer not to say' },
+  ]);
 
   const goToNextSlide = () => {
     if (currentIndex < slides.length - 1) {
@@ -77,31 +152,6 @@ const OnboardingScreen = ({ navigation }: { navigation: any }) => {
       setCurrentIndex(currentIndex - 1);
     }
   };
-  const [name, setName] = useState('');
-  const [zipCode, setZipCode] = useState('');
-  const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
-  
-  // Age dropdown state
-  const [ageOpen, setAgeOpen] = useState(false);
-  const [age, setAge] = useState(null);
-  const [ageItems, setAgeItems] = useState([
-    { label: '6-12', value: '6-12' },
-    { label: '13-18', value: '13-18' },
-    { label: '19-29', value: '19-29' },
-    { label: '30-49', value: '30-49' },
-    { label: '50+', value: '50+' },
-  ]);
-
-  // Gender dropdown state
-  const [genderOpen, setGenderOpen] = useState(false);
-  const [gender, setGender] = useState(null);
-  const [genderItems, setGenderItems] = useState([
-    { label: 'Male', value: 'Male' },
-    { label: 'Female', value: 'Female' },
-    { label: 'Non-binary', value: 'Non-binary' },
-    { label: 'Other', value: 'Other' },
-    { label: 'Prefer not to say', value: 'Prefer not to say' },
-  ]);
 
   return (
     <View style={styles.container}>
@@ -152,7 +202,40 @@ const OnboardingScreen = ({ navigation }: { navigation: any }) => {
                 ))}
                 <TouchableOpacity 
                   style={styles.doneButton}
-                  onPress={() => navigation.navigate('Auth')}
+                  onPress={async () => {
+                    try {
+                      const user = auth.currentUser;
+                      if (!user) {
+                        Alert.alert('Error', 'No user found. Please login again.');
+                        navigation.replace('Auth');
+                        return;
+                      }
+
+                      // Create user profile data
+                      const userProfile = {
+                        name,
+                        age,
+                        gender,
+                        zipCode,
+                        learningGoals: selectedGoals,
+                        onboardingCompleted: true,
+                        updatedAt: new Date().toISOString(),
+                        createdAt: new Date().toISOString()
+                      };
+
+                      // Save to Firestore
+                      await setDoc(doc(db, 'users', user.uid), userProfile, { merge: true });
+
+                      // Save onboarding completion status locally
+                      await AsyncStorage.setItem('@onboarding_complete', 'true');
+                      
+                      // Navigate to main app
+                      navigation.replace('MainTabs');
+                    } catch (error) {
+                      console.error('Error saving user profile:', error);
+                      Alert.alert('Error', 'Failed to save your profile. Please try again.');
+                    }
+                  }}
                 >
                   <Text style={styles.doneButtonText}>Done</Text>
                 </TouchableOpacity>
@@ -383,6 +466,12 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 300,
     resizeMode: 'contain',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
   },
 });
 

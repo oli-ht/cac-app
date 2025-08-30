@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';  // Handles safe areas on different devices
 import { useRoute, useNavigation } from '@react-navigation/native';  // Navigation hooks
-import { coursesData } from '../data/courses';  // Our course data
+import { Course, CourseElement } from '../types/courseCreator';
 
 // This is our main component function
 const CourseDetailScreen = () => {
@@ -19,11 +19,8 @@ const CourseDetailScreen = () => {
   const route = useRoute<any>();           // Gets the current route and its parameters
   const navigation = useNavigation<any>(); // Gets navigation functions (go back, navigate, etc.)
   
-  // Extract course information from the route parameters
-  const { courseId, courseTitle } = route.params;
-
-  // Find the specific course data using the courseId
-  const course = coursesData.find(c => c.id === courseId);
+  // Get course from route params
+  const { course } = route.params;
 
   // If course is not found, show an error message
   if (!course) {
@@ -37,9 +34,8 @@ const CourseDetailScreen = () => {
   // This function is called when user clicks "Start Course" button
   const handleStartCourse = () => {
     // Navigate to the slides screen, passing course information
-    navigation.navigate('CourseSlides', {
-      courseId: course.id,      // Pass the course ID
-      courseTitle: course.title // Pass the course title
+    navigation.navigate('CourseContent', {
+      course: course
     });
   };
 
@@ -66,13 +62,6 @@ const CourseDetailScreen = () => {
         {/* Course information section */}
         <View style={styles.courseInfo}>
           <Text style={styles.courseTitle}>{course.title}</Text>
-          <Text style={styles.courseInstructor}>by {course.instructor}</Text>
-          <Text style={styles.courseDuration}>{course.duration}</Text>
-          
-          {/* Category badge */}
-          <View style={styles.categoryContainer}>
-            <Text style={styles.categoryText}>{course.category}</Text>
-          </View>
         </View>
 
         {/* Course description section */}
@@ -83,20 +72,20 @@ const CourseDetailScreen = () => {
 
         {/* Course statistics section */}
         <View style={styles.statsContainer}>
-          {/* Number of slides */}
+          {/* Number of elements */}
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{course.slides.length}</Text>
-            <Text style={styles.statLabel}>Slides</Text>
+            <Text style={styles.statNumber}>{course.elements?.length || 0}</Text>
+            <Text style={styles.statLabel}>Elements</Text>
           </View>
           {/* Number of quizzes */}
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{course.slides.filter(s => s.type === 'quiz').length}</Text>
+            <Text style={styles.statNumber}>{course.elements?.filter((e: CourseElement) => e.type === 'quiz').length || 0}</Text>
             <Text style={styles.statLabel}>Quizzes</Text>
           </View>
-          {/* Free indicator */}
+          {/* Created date */}
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>100%</Text>
-            <Text style={styles.statLabel}>Free</Text>
+            <Text style={styles.statNumber}>{new Date(course.createdAt).toLocaleDateString()}</Text>
+            <Text style={styles.statLabel}>Created</Text>
           </View>
         </View>
 
