@@ -10,7 +10,7 @@ import {
   Image,
 } from 'react-native';
 
-const ForumPage = () => {
+const ForumScreen = () => {
   const [searchText, setSearchText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
@@ -354,3 +354,5 @@ const styles = StyleSheet.create({
     color: '#007bff',
   },
 });
+
+export default ForumScreen;
