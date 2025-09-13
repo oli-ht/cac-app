@@ -27,7 +27,16 @@ interface MedicalFacility {
   distance?: number
 }
 
-export default function MapScreen({ navigation }: Props) {
+const MEDICAL_TYPES = {
+  hospital: { icon: '🏥', label: 'Hospitals', color: '#FF3B30' },
+  clinic: { icon: '🏥', label: 'Clinics', color: '#007AFF' },
+  doctors: { icon: '👨‍⚕️', label: 'Doctors', color: '#34C759' },
+  dentist: { icon: '🦷', label: 'Dentists', color: '#FF9500' },
+  pharmacy: { icon: '💊', label: 'Pharmacies', color: '#AF52DE' },
+  veterinary: { icon: '🐾', label: 'Veterinary', color: '#8E8E93' },
+}
+
+export default function MapScreen({ }: Props) {
   const mapRef = useRef<MapView>(null)
   const [region, setRegion] = useState<Region>({
     latitude: 37.7749,
@@ -38,12 +47,14 @@ export default function MapScreen({ navigation }: Props) {
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null)
   const [selectedMarker, setSelectedMarker] = useState<{ latitude: number; longitude: number } | null>(null)
   const [medicalFacilities, setMedicalFacilities] = useState<MedicalFacility[]>([])
+  const [filteredFacilities, setFilteredFacilities] = useState<MedicalFacility[]>([])
   const [routeCoordinates, setRouteCoordinates] = useState<{ latitude: number; longitude: number }[]>([])
+  const [visibleTypes, setVisibleTypes] = useState<Set<string>>(new Set(Object.keys(MEDICAL_TYPES)))
+  const [showMapKey, setShowMapKey] = useState(false)
 
   // search state
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<any[]>([])
-  const [searchMode, setSearchMode] = useState<'general' | 'medical'>('general')
+  const [searchResults, setSearchResults] = useState<MedicalFacility[]>([])
 
   // get current location on mount
   useEffect(() => {
@@ -79,8 +90,14 @@ export default function MapScreen({ navigation }: Props) {
     })()
   }, [])
 
+  // Filter facilities when visible types change
+  useEffect(() => {
+    const filtered = medicalFacilities.filter(facility => visibleTypes.has(facility.type))
+    setFilteredFacilities(filtered)
+  }, [medicalFacilities, visibleTypes])
+
   // Search for nearby medical facilities using Overpass API
-  const searchNearbyMedicalFacilities = async (lat: number, lon: number, radius: number = 5000) => {
+  const searchNearbyMedicalFacilities = async (lat: number, lon: number, radius: number = 8000) => {
     try {
       const overpassQuery = `
         [out:json][timeout:25];
@@ -175,63 +192,24 @@ export default function MapScreen({ navigation }: Props) {
     }
   }
 
-  // General place search (your existing functionality)
-  const searchPlaces = async (text: string) => {
-    setQuery(text)
-    setSearchMode('general')
-    
-    if (text.length < 3) {
-      setResults([])
-      return
-    }
-    
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(text)}`
-      )
-      const data = await res.json()
-      setResults(data)
-    } catch (e) {
-      console.error(e)
-    }
-  }
-
   // Search medical facilities by name
-  const searchMedicalFacilities = async (text: string) => {
+  const searchMedicalFacilities = (text: string) => {
     setQuery(text)
-    setSearchMode('medical')
     
     if (text.length < 2) {
-      setResults([])
+      setSearchResults([])
       return
     }
     
     const filtered = medicalFacilities.filter(facility =>
       facility.name.toLowerCase().includes(text.toLowerCase()) ||
       facility.type.toLowerCase().includes(text.toLowerCase())
-    )
-    setResults(filtered)
-  }
-
-  const handleGeneralSelect = (place: any) => {
-    const lat = parseFloat(place.lat)
-    const lon = parseFloat(place.lon)
-    const next: Region = { latitude: lat, longitude: lon, latitudeDelta: 0.02, longitudeDelta: 0.02 }
-    setSelectedMarker({ latitude: lat, longitude: lon })
-    setRegion(next)
-    mapRef.current?.animateToRegion(next, 600)
-    setResults([])
-    setQuery(place.display_name)
-    setRouteCoordinates([]) // Clear any existing route
+    ).slice(0, 10) // Limit results
     
-    navigation.navigate('Place', {
-      name: place.display_name,
-      latitude: lat,
-      longitude: lon,
-    })
+    setSearchResults(filtered)
   }
 
-  const handleMedicalFacilitySelect = (facility: MedicalFacility) => {
+  const handleFacilitySelect = (facility: MedicalFacility) => {
     const next: Region = { 
       latitude: facility.latitude, 
       longitude: facility.longitude, 
@@ -241,7 +219,7 @@ export default function MapScreen({ navigation }: Props) {
     setSelectedMarker({ latitude: facility.latitude, longitude: facility.longitude })
     setRegion(next)
     mapRef.current?.animateToRegion(next, 600)
-    setResults([])
+    setSearchResults([])
     setQuery(facility.name)
     
     // Get directions if user location is available
@@ -256,20 +234,41 @@ export default function MapScreen({ navigation }: Props) {
     })
   }
 
+  const zoomToUserLocation = () => {
+    if (userLocation) {
+      const next: Region = {
+        ...userLocation,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      }
+      setRegion(next)
+      mapRef.current?.animateToRegion(next, 600)
+    } else {
+      Alert.alert('Location not available', 'Unable to find your current location')
+    }
+  }
+
   const clearRoute = () => {
     setRouteCoordinates([])
+    setSelectedMarker(null)
+  }
+
+  const toggleFacilityType = (type: string) => {
+    const newVisibleTypes = new Set(visibleTypes)
+    if (newVisibleTypes.has(type)) {
+      newVisibleTypes.delete(type)
+    } else {
+      newVisibleTypes.add(type)
+    }
+    setVisibleTypes(newVisibleTypes)
+  }
+
+  const getMarkerColor = (type: string) => {
+    return MEDICAL_TYPES[type as keyof typeof MEDICAL_TYPES]?.color || '#007AFF'
   }
 
   const getMedicalIcon = (type: string) => {
-    switch (type) {
-      case 'hospital': return '🏥'
-      case 'clinic': return '🏥'
-      case 'doctors': return '👨‍⚕️'
-      case 'dentist': return '🦷'
-      case 'pharmacy': return '💊'
-      case 'veterinary': return '🐾'
-      default: return '⚕️'
-    }
+    return MEDICAL_TYPES[type as keyof typeof MEDICAL_TYPES]?.icon || '⚕️'
   }
 
   return (
@@ -288,19 +287,22 @@ export default function MapScreen({ navigation }: Props) {
         
         {/* Selected marker */}
         {selectedMarker && (
-          <Marker coordinate={selectedMarker} />
+          <Marker 
+            coordinate={selectedMarker}
+            pinColor="red"
+          />
         )}
         
         {/* Medical facility markers */}
-        {medicalFacilities.map((facility) => (
+        {filteredFacilities.map((facility) => (
           <Marker
             key={facility.id}
             coordinate={{ latitude: facility.latitude, longitude: facility.longitude }}
             title={facility.name}
             description={`${facility.type} • ${facility.distance?.toFixed(1)} km`}
-            onPress={() => handleMedicalFacilitySelect(facility)}
+            onPress={() => handleFacilitySelect(facility)}
           >
-            <View style={styles.medicalMarker}>
+            <View style={[styles.medicalMarker, { borderColor: getMarkerColor(facility.type) }]}>
               <Text style={styles.markerText}>{getMedicalIcon(facility.type)}</Text>
             </View>
           </Marker>
@@ -311,79 +313,61 @@ export default function MapScreen({ navigation }: Props) {
           <Polyline
             coordinates={routeCoordinates}
             strokeColor="#007AFF"
-            strokeWidth={4}
-            lineDashPattern={[5, 10]}
+            strokeWidth={5}
+            lineDashPattern={routeCoordinates.length === 2 ? [10, 5] : undefined}
           />
         )}
       </MapView>
 
       {/* Search interface */}
       <View style={styles.searchWrap}>
-        {/* Search mode buttons */}
-        <View style={styles.searchModeButtons}>
-          <TouchableOpacity
-            style={[styles.modeButton, searchMode === 'general' && styles.activeModeButton]}
-            onPress={() => {
-              setSearchMode('general')
-              setQuery('')
-              setResults([])
-            }}
-          >
-            <Text style={[styles.modeButtonText, searchMode === 'general' && styles.activeModeButtonText]}>
-              Places
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.modeButton, searchMode === 'medical' && styles.activeModeButton]}
-            onPress={() => {
-              setSearchMode('medical')
-              setQuery('')
-              setResults([])
-            }}
-          >
-            <Text style={[styles.modeButtonText, searchMode === 'medical' && styles.activeModeButtonText]}>
-              Medical
-            </Text>
-          </TouchableOpacity>
-        </View>
-
         <TextInput
           value={query}
-          onChangeText={searchMode === 'medical' ? searchMedicalFacilities : searchPlaces}
-          placeholder={searchMode === 'medical' ? "Search medical facilities..." : "Search places..."}
+          onChangeText={searchMedicalFacilities}
+          placeholder="Search medical facilities..."
           style={styles.textInput}
         />
         
-        {results.length > 0 && (
+        {searchResults.length > 0 && (
           <FlatList
-            data={results}
-            keyExtractor={(item, i) => i.toString()}
+            data={searchResults}
+            keyExtractor={(item) => item.id}
             style={styles.listView}
             renderItem={({ item }) => (
               <TouchableOpacity 
-                onPress={() => searchMode === 'medical' ? handleMedicalFacilitySelect(item) : handleGeneralSelect(item)} 
+                onPress={() => handleFacilitySelect(item)} 
                 style={styles.resultItem}
               >
                 <View style={styles.resultContent}>
-                  {searchMode === 'medical' ? (
-                    <>
-                      <Text style={styles.facilityIcon}>{getMedicalIcon(item.type)}</Text>
-                      <View style={styles.facilityInfo}>
-                        <Text numberOfLines={1} style={styles.facilityName}>{item.name}</Text>
-                        <Text numberOfLines={1} style={styles.facilityDetails}>
-                          {item.type} • {item.distance?.toFixed(1)} km
-                        </Text>
-                        <Text numberOfLines={1} style={styles.facilityAddress}>{item.address}</Text>
-                      </View>
-                    </>
-                  ) : (
-                    <Text numberOfLines={1}>{item.display_name}</Text>
-                  )}
+                  <Text style={styles.facilityIcon}>{getMedicalIcon(item.type)}</Text>
+                  <View style={styles.facilityInfo}>
+                    <Text numberOfLines={1} style={styles.facilityName}>{item.name}</Text>
+                    <Text numberOfLines={1} style={styles.facilityDetails}>
+                      {MEDICAL_TYPES[item.type as keyof typeof MEDICAL_TYPES]?.label || item.type} • {item.distance?.toFixed(1)} km
+                    </Text>
+                    <Text numberOfLines={1} style={styles.facilityAddress}>{item.address}</Text>
+                  </View>
                 </View>
               </TouchableOpacity>
             )}
           />
         )}
+      </View>
+
+      {/* Control buttons */}
+      <View style={styles.controlsWrap}>
+        {/* Zoom to location button */}
+        <TouchableOpacity style={styles.locationButton} onPress={zoomToUserLocation}>
+          <Text style={styles.locationButtonText}>📍</Text>
+        </TouchableOpacity>
+
+        {/* Map key toggle button */}
+        <TouchableOpacity 
+          style={styles.mapKeyButton} 
+          onPress={() => setShowMapKey(!showMapKey)}
+        >
+          <Text style={styles.mapKeyButtonText}>🗝️</Text>
+        </TouchableOpacity>
 
         {/* Clear route button */}
         {routeCoordinates.length > 0 && (
@@ -392,6 +376,39 @@ export default function MapScreen({ navigation }: Props) {
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Map Key */}
+      {showMapKey && (
+        <View style={styles.mapKey}>
+          <View style={styles.mapKeyHeader}>
+            <Text style={styles.mapKeyTitle}>Medical Facilities</Text>
+            <TouchableOpacity onPress={() => setShowMapKey(false)}>
+              <Text style={styles.closeButton}>✕</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {Object.entries(MEDICAL_TYPES).map(([type, config]) => (
+            <TouchableOpacity
+              key={type}
+              style={styles.mapKeyItem}
+              onPress={() => toggleFacilityType(type)}
+            >
+              <View style={[styles.keyMarker, { borderColor: config.color }]}>
+                <Text style={styles.keyMarkerText}>{config.icon}</Text>
+              </View>
+              <Text style={[
+                styles.keyLabel,
+                !visibleTypes.has(type) && styles.keyLabelDisabled
+              ]}>
+                {config.label}
+              </Text>
+              <Text style={styles.facilityCount}>
+                ({medicalFacilities.filter(f => f.type === type).length})
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
     </View>
   )
 }
@@ -405,43 +422,28 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
   },
-  searchModeButtons: {
-    flexDirection: 'row',
-    marginBottom: 8,
-    borderRadius: 12,
-    backgroundColor: '#fff',
-    padding: 4,
-  },
-  modeButton: {
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  activeModeButton: {
-    backgroundColor: '#007AFF',
-  },
-  modeButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#666',
-  },
-  activeModeButtonText: {
-    color: '#fff',
-  },
   textInput: {
     height: 48,
     borderRadius: 12,
     paddingHorizontal: 14,
     backgroundColor: '#fff',
     fontSize: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   listView: {
     backgroundColor: '#fff',
     borderRadius: 12,
     marginTop: 6,
     maxHeight: 250,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   resultItem: {
     padding: 12,
@@ -482,20 +484,134 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#007AFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
   markerText: {
     fontSize: 14,
   },
+  controlsWrap: {
+    position: 'absolute',
+    right: 16,
+    bottom: Platform.select({ ios: 100, android: 80 }),
+    alignItems: 'flex-end',
+  },
+  locationButton: {
+    backgroundColor: '#007AFF',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  locationButtonText: {
+    fontSize: 20,
+    color: '#fff',
+  },
+  mapKeyButton: {
+    backgroundColor: '#34C759',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  mapKeyButtonText: {
+    fontSize: 18,
+  },
   clearRouteButton: {
     backgroundColor: '#FF3B30',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 8,
-    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   clearRouteText: {
     color: '#fff',
     fontWeight: '500',
+    fontSize: 14,
+  },
+  mapKey: {
+    position: 'absolute',
+    left: 16,
+    bottom: Platform.select({ ios: 100, android: 80 }),
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    maxWidth: 250,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  mapKeyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  mapKeyTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  closeButton: {
+    fontSize: 18,
+    color: '#999',
+    fontWeight: 'bold',
+  },
+  mapKeyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  keyMarker: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    marginRight: 8,
+  },
+  keyMarkerText: {
+    fontSize: 12,
+  },
+  keyLabel: {
+    fontSize: 14,
+    flex: 1,
+    color: '#333',
+  },
+  keyLabelDisabled: {
+    color: '#999',
+    textDecorationLine: 'line-through',
+  },
+  facilityCount: {
+    fontSize: 12,
+    color: '#666',
   },
 })
