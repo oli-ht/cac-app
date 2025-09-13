@@ -11,7 +11,7 @@ import HomeScreen from '../screens/HomeScreen';
 import CoursesScreen from '../screens/CoursesScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
-import SettingsScreen from '../screens/SettingsScreen';
+import MapScreen from '../screens/MapScreen'
 import ChatbotsScreen from '../screens/ChatbotsScreen';
 import ChatScreen from '../screens/ChatScreen';
 import CourseDetailScreen from '../screens/CourseDetailScreen';
@@ -133,8 +133,8 @@ const TabNavigator = () => {
         }}
       />
       <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
+        name="Map"
+        component={MapScreen}
         options={{
           tabBarLabel: 'Map',
         }}
