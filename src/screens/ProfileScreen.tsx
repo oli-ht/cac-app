@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   categoryContainer: {
     backgroundColor: '#fff',
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#e9ecef',
   },
