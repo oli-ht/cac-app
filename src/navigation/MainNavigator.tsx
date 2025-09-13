@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { MainTabParamList } from '../types/navigation';
 import { Text, Image } from 'react-native';
-
+import { Ionicons } from '@expo/vector-icons';
 // Import screens
 import AuthScreen from '../screens/auth/AuthScreen';
 import OnboardingScreen from '../screens/auth/OnboardingScreen';
@@ -82,22 +82,22 @@ const TabNavigator = () => {
           let iconText;
           switch (route.name) {
             case 'Home':
-              iconText = '🏠';
+              iconText = <Ionicons name="home" size={24} color={focused ? '#007AFF' : '#999'} />
               break;
             case 'Courses':
-              iconText = '📚';
+              iconText = <Ionicons name="book" size={24} color={focused ? '#007AFF' : '#999'} />
               break;
             case 'Profile':
-              iconText = '👥';
+              iconText = <Ionicons name="people" size={24} color={focused ? '#007AFF' : '#999'} />
               break;
             case 'Settings':
-              iconText = '🗺️';
+              iconText = <Ionicons name="map" size={24} color={focused ? '#007AFF' : '#999'} />
               break;
             case 'Chatbots':
-              iconText = '💬';
+              iconText = <Ionicons name="chatbubbles" size={24} color={focused ? '#007AFF' : '#999'} />
               break;
             default:
-              iconText = '🏠';
+              iconText = <Ionicons name="home" size={24} color={focused ? '#007AFF' : '#999'} />
           }
           return (
             <Text
