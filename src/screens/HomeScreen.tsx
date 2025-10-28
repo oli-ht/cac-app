@@ -1,55 +1,69 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import LearningGoalCard from '../components/HomeScreen/LearningGoalCard';
 import HorizontalSlider from '../components/common/HorizontalSlider';
-import QuickActionCard from '../components/common/QuickActionCard';
+import RecentActivityCard from '../components/common/RecentActivityCard';
 import { SimpleBarChart } from '../components/HomeScreen/SimpleBarChart';
 import { db, auth } from "../config/firebaseConfig";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, query, orderBy, limit } from "firebase/firestore";
+import { getAuth as getAuthFirebase } from 'firebase/auth';
 
-// Quick actions data
-const quickActionsData = [
-  {
-    id: '1',
-    title: 'Start Quiz',
-    subtitle: 'Test your knowledge',
-    color: '#FF6B6B',
-  },
-  {
-    id: '2',
-    title: 'Watch Video',
-    subtitle: 'Learn visually',
-    color: '#4ECDC4',
-  },
-  {
-    id: '3',
-    title: 'Read Article',
-    subtitle: 'Deep dive',
-    color: '#45B7D1',
-  },
-  {
-    id: '4',
-    title: 'Practice',
-    subtitle: 'Hands-on learning',
-    color: '#96CEB4',
-  },
-];
 
 const HomeScreen = () => {
+  const navigation = useNavigation<any>();
   const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [recentCourses, setRecentCourses] = useState<any[]>([]);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+
+  const fetchRecentCourses = async () => {
+    try {
+      const user = getAuthFirebase().currentUser;
+      if (!user) {
+        console.log('No user logged in, cannot fetch recent courses');
+        return;
+      }
+
+      console.log('Fetching recent courses for user:', user.uid);
+
+      const historyRef = collection(db, 'users', user.uid, 'courseHistory');
+      const q = query(historyRef, orderBy('lastAccessedAt', 'desc'), limit(4));
+      const snapshot = await getDocs(q);
+
+      console.log('Found', snapshot.docs.length, 'recent courses');
+
+      const courses = snapshot.docs.map(doc => ({
+        id: doc.data().courseId,
+        title: doc.data().courseName,
+        lastAccessedAt: doc.data().lastAccessedAt,
+        subtitle: "Continue learning",
+        color: '#007AFF',
+      }));
+
+      console.log('Recent courses:', courses);
+      setRecentCourses(courses);
+    } catch (error) {
+      console.error('Error fetching recent courses:', error);
+    }
+  };
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const user = auth.currentUser;
+        const user = getAuthFirebase().currentUser;
         if (!user) return;
 
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         if (userDoc.exists()) {
-          setUserData(userDoc.data());
+          const data = userDoc.data();
+          setUserData(data);
+          setProfileImage(data.profileImage || null);
         }
+        
+        await fetchRecentCourses();
       } catch (error) {
         console.error('Error fetching user data:', error);
       } finally {
@@ -60,15 +74,28 @@ const HomeScreen = () => {
     fetchUserData();
   }, []);
 
-  const handleQuickActionPress = (actionId: string) => {
-    console.log('Quick action pressed:', actionId);
-    // Add your navigation or action logic here
+  const handleCoursePress = async (courseId: string) => {
+    try {
+      // Fetch full course data
+      const courseDoc = await getDoc(doc(db, 'courses', courseId));
+      if (courseDoc.exists()) {
+        const courseData = { id: courseDoc.id, ...courseDoc.data() };
+        // Navigate to Courses tab and CourseDetail
+        // The back button in CourseDetail will handle going to CoursesMain
+        navigation.navigate('Courses', {
+          screen: 'CourseDetail',
+          params: { course: courseData },
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching course:', error);
+    }
   };
 
-  const renderQuickActionCard = (action: any) => (
-    <QuickActionCard
+  const renderRecentActionCard = (action: any) => (
+    <RecentActivityCard
       action={action}
-      onPress={() => handleQuickActionPress(action.id)}
+      onPress={() => handleCoursePress(action.id)}
     />
   );
 
@@ -79,20 +106,45 @@ const HomeScreen = () => {
           <ActivityIndicator color="#fff" size="large" />
         ) : (
           <>
-            <Text style={styles.headerTitle}>Hi {userData?.name || 'there'}!</Text>
-            <Text style={styles.headerSubtitle}>What will you learn today?</Text>
+            {/* Doctor background image */}
+            <Image 
+              source={require('../assets/images/doctor.png')} 
+              style={styles.doctorBackgroundImage}
+              resizeMode="cover"
+            />
+            <View style={styles.headerContent}>
+              <View style={styles.headerText}>
+                <Text style={styles.headerTitle}>Hi {userData?.name || 'there'}!</Text>
+                <Text style={styles.headerSubtitle}>What will you learn today?</Text>
+              </View>
+              <TouchableOpacity 
+                style={styles.profileIconButton}
+                onPress={() => navigation.navigate('Profile')}
+              >
+                {profileImage ? (
+                  <Image 
+                    source={{ uri: profileImage }} 
+                    style={styles.profileIcon}
+                  />
+                ) : (
+                  <View style={styles.profileIconPlaceholder}>
+                    <Ionicons name="person" size={24} color="#007AFF" />
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
           </>
         )}
       </View>
       <View style={styles.content}>
         <LearningGoalCard currentMinutes={46} totalMinutes={60} />
         
-        {/* Quick Actions Slider */}
+        {/* Recent Stuff Slider */}
         <View style={styles.quickActionsSection}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <Text style={styles.sectionTitle}>Recent</Text>
           <HorizontalSlider
-            data={quickActionsData}
-            renderItem={renderQuickActionCard}
+            data={recentCourses}
+            renderItem={renderRecentActionCard}
             containerStyle={styles.quickActionsContainer}
             itemSpacing={12}
           />
@@ -120,24 +172,69 @@ const styles = StyleSheet.create({
   },
   header: {
     height: 180,
-    backgroundColor: '#2EB5FA',
+    backgroundColor: '#007AFF',
     justifyContent: 'center',
     paddingHorizontal: 20,
     paddingTop: 50,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  doctorBackgroundImage: {
+    position: 'absolute',
+    right: -40,
+    top: -30,
+    width: 300,
+    height: 300,
+    opacity: 0.7,
+    zIndex: 0,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    zIndex: 10,
+    position: 'relative',
+  },
+  headerText: {
+    flex: 1,
+    zIndex: 10,
+  },
+  profileIconButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 20,
+  },
+  profileIcon: {
+    width: 50,
+    height: 50,
+  },
+  profileIconPlaceholder: {
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
   },
   headerTitle: {
     fontSize: 34,
-    fontWeight: 'bold',
+    fontFamily: 'NotoSerifBold',
     color: '#fff',
-    fontFamily: 'serif',
   },
   headerSubtitle: {
     fontSize: 16,
+    fontFamily: 'InterRegular',
     color: '#fff',
-    opacity: 0.8,
+    opacity: 1,
     marginTop: 4,
   },
   content: {
+    fontFamily: 'InterRegular',
     padding: 20,
     marginTop: -30, // Pulls the content up to overlap the header slightly
   },
@@ -149,7 +246,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontFamily: 'NotoSerifSemiBold',
     color: '#333',
     marginBottom: 15,
   },
@@ -171,6 +268,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   cardTitle: {
+    fontFamily: 'NotoSerifBold',
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 10,

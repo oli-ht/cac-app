@@ -12,10 +12,6 @@ import {
 } from 'react-native'
 import MapView, { Marker, UrlTile, Region, Polyline } from 'react-native-maps'
 import * as Location from 'expo-location'
-import type { NativeStackScreenProps } from '@react-navigation/native-stack'
-import type { RootStackParamList } from '../../App'
-
-type Props = NativeStackScreenProps<RootStackParamList, 'Map'>
 
 interface MedicalFacility {
   id: string
@@ -36,7 +32,7 @@ const MEDICAL_TYPES = {
   veterinary: { icon: '🐾', label: 'Veterinary', color: '#8E8E93' },
 }
 
-export default function MapScreen({ }: Props) {
+export default function MapScreen() {
   const mapRef = useRef<MapView>(null)
   const [region, setRegion] = useState<Region>({
     latitude: 37.7749,
@@ -226,12 +222,6 @@ export default function MapScreen({ }: Props) {
     if (userLocation) {
       getRoute(userLocation.latitude, userLocation.longitude, facility.latitude, facility.longitude)
     }
-    
-    navigation.navigate('Place', {
-      name: facility.name,
-      latitude: facility.latitude,
-      longitude: facility.longitude,
-    })
   }
 
   const zoomToUserLocation = () => {

@@ -9,13 +9,24 @@ import {
   Inter_700Bold 
 } from '@expo-google-fonts/inter';
 import { View, ActivityIndicator } from 'react-native';
-
+import { GochiHand_400Regular } from '@expo-google-fonts/gochi-hand';
+import { NotoSerif_400Regular, NotoSerif_500Medium, NotoSerif_600SemiBold, NotoSerif_700Bold } from '@expo-google-fonts/noto-serif';
+import { EBGaramond_400Regular, EBGaramond_500Medium, EBGaramond_600SemiBold, EBGaramond_700Bold } from '@expo-google-fonts/eb-garamond';
 const App = () => {
   const [fontsLoaded] = useFonts({
     InterRegular: Inter_400Regular,
     InterMedium: Inter_500Medium,
     InterSemiBold: Inter_600SemiBold,
     InterBold: Inter_700Bold,
+    Ebgaramond: EBGaramond_400Regular,
+    EbgaramondMedium: EBGaramond_500Medium,
+    EbgaramondSemiBold: EBGaramond_600SemiBold,
+    EbgaramondBold: EBGaramond_700Bold,
+    GochiHand: GochiHand_400Regular,
+    NotoSerif: NotoSerif_400Regular,
+    NotoSerifMedium: NotoSerif_500Medium,
+    NotoSerifSemiBold: NotoSerif_600SemiBold,
+    NotoSerifBold: NotoSerif_700Bold,
   });
 
   if (!fontsLoaded) {

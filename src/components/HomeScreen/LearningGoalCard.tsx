@@ -30,6 +30,7 @@ const LearningGoalCard: React.FC<LearningGoalCardProps> = ({ currentMinutes, tot
 
 const styles = StyleSheet.create({
   card: {
+    fontFamily: 'EbgaramondSemiBold',
     backgroundColor: '#fff',
     borderRadius: 15,
     padding: 20,
@@ -44,12 +45,14 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   header: {
+    fontFamily: 'EbgaramondSemiBold',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 10,
   },
   title: {
+    fontFamily: 'EbgaramondSemiBold',
     fontSize: 16,
     color: '#666',
   },
@@ -64,6 +67,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   minutes: {
+    fontFamily: 'NotoSerifBold',
     fontSize: 32,
     fontWeight: 'bold',
     color: '#333',

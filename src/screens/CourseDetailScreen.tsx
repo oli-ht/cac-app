@@ -1,6 +1,7 @@
 // This screen shows detailed information about a specific course
 // It's displayed when a user clicks on a course from the courses list
-import React from 'react';
+import React, { useEffect } from 'react';
+import { setDoc, doc, serverTimestamp } from 'firebase/firestore';
 import {
   View,              // Container component - like a div in web
   Text,              // Text display component
@@ -12,6 +13,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';  // Handles safe areas on different devices
 import { useRoute, useNavigation } from '@react-navigation/native';  // Navigation hooks
 import { Course, CourseElement } from '../types/courseCreator';
+import { getAuth as getAuthFirebase } from 'firebase/auth';
+import { db } from '../config/firebaseConfig';
 
 // This is our main component function
 const CourseDetailScreen = () => {
@@ -21,6 +24,37 @@ const CourseDetailScreen = () => {
   
   // Get course from route params
   const { course } = route.params;
+  const trackCourseAccess = async (courseId: string, courseTitle: string) => {
+    try {
+      const user = getAuthFirebase().currentUser;
+      if (!user) {
+        console.log('No user logged in, cannot track course');
+        return;
+      }
+      
+      console.log('Tracking course access:', courseTitle, 'for user:', user.uid);
+      
+      await setDoc(
+        doc(db, 'users', user.uid, 'courseHistory', courseId),
+        {
+          courseId: courseId,
+          courseName: courseTitle,
+          lastAccessedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+      
+      console.log('Successfully tracked course:', courseTitle);
+    } catch (error) {
+      console.error('Error tracking course access:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (course?.id && course?.title) {
+      trackCourseAccess(course.id, course.title);
+    }
+  }, [course]);
 
   // If course is not found, show an error message
   if (!course) {
@@ -47,7 +81,17 @@ const CourseDetailScreen = () => {
         
         {/* Header section with back button */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
+          <TouchableOpacity onPress={() => {
+            // Get navigation state to check stack depth
+            const state = navigation.getState();
+            // If we're the only screen in the stack, navigate to CoursesMain
+            // Otherwise go back normally
+            if (state.routes.length <= 1) {
+              navigation.navigate('CoursesMain');
+            } else {
+              navigation.goBack();
+            }
+          }}>
             <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
         </View>

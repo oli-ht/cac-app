@@ -1,4 +1,22 @@
 export type ElementType = 'article' | 'video' | 'funFact' | 'quiz' | 'question';
+export type QuizQuestionType = 'multipleChoice' | 'trueFalse' | 'multiSelect' | 'matching' | 'fillInBlank' | 'ordering';
+
+export interface QuizQuestion {
+  id: string;
+  questionType: QuizQuestionType;
+  question: string;
+  // For multiple choice, true/false, multi-select
+  options?: string[];
+  correctAnswer?: number; // For multiple choice and true/false
+  correctAnswers?: number[]; // For multi-select
+  // For matching
+  pairs?: { left: string; right: string }[];
+  // For fill in the blank
+  correctText?: string;
+  caseSensitive?: boolean;
+  // For ordering
+  correctOrder?: string[];
+}
 
 export interface CourseElement {
   id: string;
@@ -16,6 +34,11 @@ export interface CourseElement {
   }[];
   // For fun facts
   imageUrl?: string;
+  // For articles with glossary
+  glossary?: {
+    term: string;
+    definition: string;
+  }[];
 }
 
 export interface Course {

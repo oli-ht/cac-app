@@ -2,7 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { MainTabParamList } from '../types/navigation';
-import { Text, Image } from 'react-native';
+import { Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 // Import screens
 import AuthScreen from '../screens/auth/AuthScreen';
@@ -10,7 +10,7 @@ import OnboardingScreen from '../screens/auth/OnboardingScreen';
 import HomeScreen from '../screens/HomeScreen';
 import CoursesScreen from '../screens/CoursesScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
-import ProfileScreen from '../screens/ProfileScreen';
+import ForumScreen from '../screens/ForumScreen';
 import MapScreen from '../screens/MapScreen'
 import ChatbotsScreen from '../screens/ChatbotsScreen';
 import ChatScreen from '../screens/ChatScreen';
@@ -18,10 +18,12 @@ import CourseDetailScreen from '../screens/CourseDetailScreen';
 import CourseContentScreen from '../screens/CourseContentScreen';
 import CourseCreatorScreen from '../screens/CourseCreatorScreen';
 import CourseSlidesScreen from '../screens/CourseSlidesScreen';
+import ProfileScreen from '../screens/ProfileScreen';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const ChatStack = createStackNavigator<any>();
 const CoursesStack = createStackNavigator<any>();
+const ForumStack = createStackNavigator<any>();
 
 function ChatbotsStackNavigator() {
   return (
@@ -50,6 +52,24 @@ function CoursesStackNavigator() {
       />
       <CoursesStack.Screen name="CourseContent" component={CourseContentScreen} />
     </CoursesStack.Navigator>
+  );
+}
+
+function ForumStackNavigator() {
+  return (
+    <ForumStack.Navigator screenOptions={{ headerShown: false }}>
+      <ForumStack.Screen name="ForumMain" component={ForumScreen} />
+      <ForumStack.Screen 
+        name="NewPost" 
+        component={ForumScreen} 
+        options={{
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
+          gestureEnabled: true,
+          gestureDirection: 'vertical'
+        }}
+      />
+    </ForumStack.Navigator>
   );
 }
 
@@ -87,10 +107,10 @@ const TabNavigator = () => {
             case 'Courses':
               iconText = <Ionicons name="book" size={24} color={focused ? '#007AFF' : '#999'} />
               break;
-            case 'Profile':
+            case 'Community':
               iconText = <Ionicons name="people" size={24} color={focused ? '#007AFF' : '#999'} />
               break;
-            case 'Settings':
+            case 'Map':
               iconText = <Ionicons name="map" size={24} color={focused ? '#007AFF' : '#999'} />
               break;
             case 'Chatbots':
@@ -124,10 +144,20 @@ const TabNavigator = () => {
         options={{
           tabBarLabel: 'Courses',
         }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            // Reset to CoursesMain when tab is pressed
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Courses', state: { routes: [{ name: 'CoursesMain' }] } }],
+            });
+          },
+        })}
       />
       <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
+        name="Community"
+        component={ForumStackNavigator}
         options={{
           tabBarLabel: 'Community',
         }}
@@ -156,6 +186,16 @@ const MainNavigator = () => {
       <Stack.Screen name="Auth" component={AuthScreen} />
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="MainTabs" component={TabNavigator} />
+      <Stack.Screen 
+        name="Profile" 
+        component={ProfileScreen}
+        options={{
+          presentation: 'modal',
+          animation: 'slide_from_right',
+          gestureEnabled: true,
+          gestureDirection: 'horizontal'
+        }}
+      />
     </Stack.Navigator>
   );
 };

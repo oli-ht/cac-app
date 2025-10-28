@@ -276,12 +276,6 @@ const CoursesScreen = ({ route }: { route: any }) => {
               <Text style={styles.welcomeText}>Welcome back</Text>
               <Text style={styles.headerTitle}>Your Courses</Text>
             </View>
-            <TouchableOpacity style={styles.avatarContainer}>
-              <View style={styles.avatarPlaceholder}>
-                <Ionicons name="person" size={20} color="#666" />
-              </View>
-              <View style={styles.notificationBadge} />
-            </TouchableOpacity>
           </View>
 
           {/* --- Search Bar --- */}
@@ -375,42 +369,15 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   welcomeText: {
-    fontFamily: typography.fonts.regular,
+    fontFamily: 'InterRegular',
     fontSize: typography.sizes.md,
     color: '#666',
     marginBottom: 4,
   },
   headerTitle: {
-    fontFamily: typography.fonts.bold,
+    fontFamily: 'NotoSerifBold',
     fontSize: typography.sizes.xxxl,
     color: '#1a1a1a',
-  },
-  avatarContainer: {
-    position: 'relative',
-  },
-  avatarPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  notificationBadge: {
-    position: 'absolute',
-    top: -2,
-    right: -2,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#FF3B30',
-    borderWidth: 2,
-    borderColor: '#fff',
   },
   searchContainer: {
     backgroundColor: '#fff',
@@ -443,7 +410,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   sectionTitle: {
-    fontFamily: typography.fonts.semiBold,
+    fontFamily: 'NotoSerifSemiBold',
     fontSize: typography.sizes.xl,
     color: '#1a1a1a',
     marginBottom: 15,
@@ -513,7 +480,7 @@ const styles = StyleSheet.create({
     marginRight: 24,
   },
   courseDescription: {
-    fontFamily: typography.fonts.regular,
+    fontFamily: 'EbgaramondSemiBold',
     fontSize: typography.sizes.md,
     color: '#666',
     marginTop: 4,
